@@ -127,11 +127,11 @@ describe("configuration boundaries", () => {
     expect(() => parseConfigPatch({ tts: { fishModel: "s1" } })).toThrow("fishModel");
   });
 
-  it("defaults to three parallel threads and validates a configurable maximum of ten", () => {
+  it("defaults to three parallel threads and validates a configurable maximum of sixteen", () => {
     expect(maxConcurrentBotThreads({})).toBe(3);
-    expect(parseStoredConfig({ threads: { maxConcurrentPerBot: 10 } })).toEqual({ threads: { maxConcurrentPerBot: 10 } });
+    expect(parseStoredConfig({ threads: { maxConcurrentPerBot: 16 } })).toEqual({ threads: { maxConcurrentPerBot: 16 } });
     expect(maxConcurrentBotThreads(parseConfigPatch({ threads: { maxConcurrentPerBot: 1 } }))).toBe(1);
-    for (const value of [0, -1, 11, 1.5, "10", null]) {
+    for (const value of [0, -1, 17, 1.5, "10", null]) {
       expect(() => parseConfigPatch({ threads: { maxConcurrentPerBot: value } })).toThrow("threads.maxConcurrentPerBot");
     }
   });
@@ -2202,6 +2202,8 @@ describe("a value derived from config.json", () => {
     const derive = vi.fn(members);
     const read = cacheUntilConfigChanges(derive);
     read();
+    // Linux stamps ctime from a clock that ticks every 1 to 10 ms, so a chmod in the write's own tick keeps its ctime.
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
     // chmod and chown leave the size, the time and the file the same.
     chmodSync(path, 0o600);
     read();
